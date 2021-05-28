@@ -29,8 +29,8 @@ Please setup your data folder as the following structure:
 ```
 SAILER
 |___data  
-	|___MouseAtlas
-	|___PBMC
+    |___MouseAtlas
+    |___PBMC
     |___SimATAC
 ```
 
