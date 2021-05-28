@@ -11,3 +11,7 @@ log*
 *.png
 *.pdf
 *.eps
+*.npz
+*.txt
+*.zip
+./data/*

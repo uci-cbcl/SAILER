@@ -62,7 +62,7 @@ class Trainer(object):
         self.log = args.log
         self.out_every = args.out_every
         self.pos_w = args.pos_w,
-        self.LAMBDA = args.lambda
+        self.LAMBDA = args.LAMBDA
         if args.cuda_dev:
             torch.cuda.set_device(args.cuda_dev[0])
             self.cuda_dev = f'cuda:{args.cuda_dev[0]}'
@@ -157,27 +157,6 @@ class Trainer(object):
         torch.save(self.model.module.state_dict(), os.path.join(self.ckpt_dir, 'warmup.pt'))
         self.pbar.write("[Warmup Finished]")
         self.pbar.close()
-
-
-    def encode_all(self, batch_size=20):
-        dataloader =  DataLoader(self.dataset,
-                                batch_size=batch_size,
-                                shuffle=False,
-                                num_workers=0,
-                                pin_memory=True,
-                                drop_last=False)
-        labels = []
-        latent = torch.zeros(self.dataset.__len__(), self.z_dim)
-        self.model.eval()
-        for i, dp in tqdm(enumerate(dataloader)):
-            x, l, _ = dp
-            x = x.float().to(self.device)
-            labels = labels + l
-            with torch.no_grad():
-                z_mean, _ = self.model.forward(x, no_rec=True)
-                # z_mean, _, _, _ = self.model(x)
-                latent[i*batch_size: (i+1)*batch_size] = z_mean.cpu()
-        return latent, labels
 
     def rec_all(self, batch_size=1, same_depth=False):
         dataloader =  DataLoader(self.dataset,
@@ -277,7 +256,7 @@ class Trainer(object):
         self.pbar.write("[Inv Training Finished]")
         self.pbar.close()
 
-    def encode_adv(self, batch_size=20):
+    def encode_adv(self, batch_size=1000):
         dataloader =  DataLoader(self.dataset,
                                 batch_size=batch_size,
                                 shuffle=False,
@@ -296,29 +275,6 @@ class Trainer(object):
             d = d.log()
             d = (d - self.dataset.d_mean) / self.dataset.d_std
             d = d.unsqueeze(1).float().to(self.device)
-            with torch.no_grad():
-                z_mean, _ = self.model.forward(x, d, no_rec=True)
-                # z_mean, _, _, _ = self.model(x)
-                latent[i*batch_size: (i+1)*batch_size] = z_mean.cpu()
-        return latent, labels, depth
-
-    def encode_adv2(self, batch_size=20):
-        dataloader =  DataLoader(self.dataset,
-                                batch_size=batch_size,
-                                shuffle=False,
-                                num_workers=0,
-                                pin_memory=True,
-                                drop_last=False)
-        labels = []
-        latent = torch.zeros(self.dataset.__len__(), self.z_dim)
-        depth = torch.zeros(self.dataset.__len__())
-        self.model.eval()
-        for i, dp in tqdm(enumerate(dataloader)):
-            x, l, d = dp
-            x = x.float().to(self.device)
-            labels = labels + list(l)
-            depth[i*batch_size: (i+1)*batch_size] = d
-            d = d.unsqueeze(1).float().to(self.device).log()
             with torch.no_grad():
                 z_mean, _ = self.model.forward(x, d, no_rec=True)
                 # z_mean, _, _, _ = self.model(x)

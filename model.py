@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 Downsample = 1000
 Downsample2 = 500
-LAYERS = 100
+MID_LAYER = 100
 FIRST_LAYER = 1000
 
 def dice_loss(pred, target):
@@ -28,12 +28,12 @@ class DesnseEncoder(nn.Module):
             nn.Linear(input_dim, FIRST_LAYER),
             nn.BatchNorm1d(num_features=FIRST_LAYER),
             nn.LeakyReLU(0.2, False),
-            nn.Linear(FIRST_LAYER, LAYERS),
-            nn.BatchNorm1d(num_features=LAYERS),
+            nn.Linear(FIRST_LAYER, MID_LAYER),
+            nn.BatchNorm1d(num_features=MID_LAYER),
             nn.LeakyReLU(0.2, False),
         )
-        self.mean_enc = nn.Linear(LAYERS, z_dim)
-        self.var_enc = nn.Linear(LAYERS, z_dim)
+        self.mean_enc = nn.Linear(MID_LAYER, z_dim)
+        self.var_enc = nn.Linear(MID_LAYER, z_dim)
 
     def forward(self, x):
         out = self.Encoder(x)
@@ -53,10 +53,10 @@ class VAE2(nn.Module):
             c = 1
         self.Encoder = DesnseEncoder(input_dim, z_dim)
         self.Decoder = nn.Sequential(
-            nn.Linear(z_dim+c, LAYERS),
-            nn.BatchNorm1d(num_features=LAYERS),
+            nn.Linear(z_dim+c, MID_LAYER),
+            nn.BatchNorm1d(num_features=MID_LAYER),
             nn.LeakyReLU(0.2, True),
-            nn.Linear(LAYERS, FIRST_LAYER),
+            nn.Linear(MID_LAYER, FIRST_LAYER),
             nn.BatchNorm1d(num_features=FIRST_LAYER),
             nn.LeakyReLU(0.2, True),
             nn.Linear(FIRST_LAYER, input_dim),

@@ -11,7 +11,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 
 data_path3 = './data/SimATAC/'
-data_path5 = './data/MouseAtalas/'
+data_path5 = './data/MouseAtlas/'
 data_path7 = './data/PBMC/'
 
 Downsample = 1000

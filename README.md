@@ -16,7 +16,7 @@ Navigate to the root of this repo and setup the conda environment.
 conda env create -f deepatac.yml
 ```
 
-Activate conda environment
+Activate conda environment.
 
 ```
 conda activate deepatac
@@ -24,16 +24,42 @@ conda activate deepatac
 
 ## Data
 
-Please setup your data folder as the following structure:
+Please download data [here](https://drive.google.com/file/d/1sq9QiWL3_MnMCEB3yJ_O6BW8GYjwDRMT/view?usp=sharing) and setup your data folder as the following structure:
 
 ```
 SAILER
 |___data  
     |___MouseAtlas
-    |___PBMC
-    |___SimATAC
+        |___...
 ```
 
-## Visualize Results
+## Visualizing Results
 
- 
+ Please download the pretrained model [here](https://drive.google.com/file/d/1L0ahnqC6bM2hOkn1ZkcOTuPU_EH-4K1X/view?usp=sharing) and setup your data folder as the following structure:
+
+```
+SAILER
+|___models  
+    |___MouseAtlas.pt
+```
+
+Navigate to the root of this repo and run the following command. Result will be stored under ./results directory.
+
+```
+python eval.py -l './models/MouseAtlas.pt' -d atlas
+```
+
+## Training
+
+To train the model from scratch, use the following command. 
+
+```
+python train.py -b 400 -d atlas --name mouse_atlas
+```
+
+For more information, see
+
+```
+python train.py -h
+```
+
