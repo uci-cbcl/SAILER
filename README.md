@@ -1,3 +1,16 @@
 # SAILER
 
-The code will be available once the paper is accepted.
+
+
+Clone the repo
+
+```
+git clone https://github.com/uci-cbcl/SAILER.git
+```
+
+Setup the conda environment
+
+```
+conda 
+```
+
