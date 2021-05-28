@@ -62,13 +62,4 @@ parser.add_argument('--lambda', default=1, type=float, help='lambda value')
 solver = Trainer(parser)
 solver.warm_up()
 solver.inv_train()
-# solver.run_time()
 
-# latent, labels, depth = solver.encode_adv(1000)
-# result = latent.numpy()
-# l = pd.DataFrame(labels, columns=['celltype'])
-# d = depth.numpy()
-
-# np.save(f'./results/latent/{args.name}_latent.npy', result)
-# np.save(f'./results/latent/{args.name}_depth.npy', d)
-# l.to_csv('./results/latent/{args.name}_labels.csv', index=False)
