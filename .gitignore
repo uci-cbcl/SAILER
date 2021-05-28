@@ -1,0 +1,13 @@
+*.vscode
+log*
+./models/*
+*.pt
+*.ipynb_checkpoints
+*.ipynb
+*.pyc
+*.csv
+*.npy
+./results/*
+*.png
+*.pdf
+*.eps
