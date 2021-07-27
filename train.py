@@ -9,7 +9,7 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='main', type=str, help='name of the experiment')
     parser.add_argument('--log', default='train_log.csv', type=str, help='name of log file')
     parser.add_argument('-l', '--load_ckpt', default=False, type=str, help='path to ckpt loaded')
-    parser.add_argument('-cuda', '--cuda_dev', default=[0], type=list, help='GPU want to use')
+    parser.add_argument('-cuda', '--cuda_dev', default=[0], type=int, help='GPU want to use')
     parser.add_argument('--sample_batch', default=False, type=bool, help='Add batch effect correction')
     parser.add_argument('--max_epoch', default=400, type=int, help='maximum training epoch')
     parser.add_argument('--start_epoch', default=0, type=int, help='starting epoch')

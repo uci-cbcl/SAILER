@@ -24,12 +24,14 @@ conda activate deepatac
 
 ## Data
 
-Please download data [here](https://drive.google.com/file/d/1sq9QiWL3_MnMCEB3yJ_O6BW8GYjwDRMT/view?usp=sharing) and setup your data folder as the following structure:
+Please download data [here](https://drive.google.com/file/d/1_pKJ8TIb3pFfNJJIPBjNk33G9lPPHhvk/view?usp=sharing) and setup your data folder as the following structure:
 
 ```
 SAILER
 |___data  
     |___MouseAtlas
+        |___...
+    |___SimATAC
         |___...
 ```
 
