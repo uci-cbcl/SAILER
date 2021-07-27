@@ -1,6 +1,6 @@
 # SAILER
 
-Pytorch implementation for [SAILER: Scalable and Accurate Invariant Representation Learning for Single-Cell ATAC-Seq Processing and Integration](https://www.biorxiv.org/content/10.1101/2021.01.28.428689v2)
+Pytorch implementation for [SAILER: Scalable and Accurate Invariant Representation Learning for Single-Cell ATAC-Seq Processing and Integration](https://doi.org/10.1093/bioinformatics/btab303)
 
 ## Setup
 
