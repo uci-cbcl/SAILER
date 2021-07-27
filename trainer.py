@@ -9,6 +9,7 @@ import torch.nn as nn
 from torch.distributions import Normal, Bernoulli, kl_divergence as kl
 import torch.nn.functional as F
 from torch.autograd import Variable
+from torch.optim.lr_scheduler import LambdaLR
 
 from dataset import MouseAtlas, PBMC, MergeSim, SimATAC_peak as SimATAC
 from model import VAE2, VAEInv
@@ -38,18 +39,13 @@ def apprx_kl(mu, sigma):
     '''
     var = sigma.pow(2)
     var_inv = var.reciprocal()
-
     first = torch.matmul(var, var_inv.T)
-
     r = torch.matmul(mu * mu, var_inv.T)
     r2 = (mu * mu * var_inv).sum(axis=1)
-
     second = 2 * torch.matmul(mu, (mu * var_inv).T)
     second = r - second + (r2 * torch.ones_like(r)).T
-
     r3 = var.log().sum(axis=1)
     third = (r3 * torch.ones_like(r)).T - r3
-
     return 0.5 * (first + second + third)
 
           
@@ -109,18 +105,33 @@ class Trainer(object):
             raise Exception(f'Model type {args.model_type} does not exist!')
         self.model_type = args.model_type
         if args.load_ckpt:
-            if os.path.isfile(args.load_ckpt):
-                print('Loading ' + args.load_ckpt)
-                if self.cuda_dev:
-                    self.model.module.load_state_dict(torch.load(args.load_ckpt, map_location=self.cuda_dev))
-                else:
-                    self.model.module.load_state_dict(torch.load(args.load_ckpt, map_location='cpu'))
-                print('Finished Loading ckpt...')
-            else:
-                raise Exception(args.load_ckpt + "\nckpt does not exist!")
+            self.load_ckpt(args.load_ckpt)
+            # if os.path.isfile(args.load_ckpt):
+            #     print('Loading ' + args.load_ckpt)
+            #     if self.cuda_dev:
+            #         self.model.module.load_state_dict(torch.load(args.load_ckpt, map_location=self.cuda_dev))
+            #     else:
+            #         self.model.module.load_state_dict(torch.load(args.load_ckpt, map_location='cpu'))
+            #     print('Finished Loading ckpt...')
+            # else:
+            #     raise Exception(args.load_ckpt + "\nckpt does not exist!")
         self.model.to(self.device)
         self.optim = optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         self.cycle = CYCLE * self.dataset.__len__() // self.batch_size // len(args.cuda_dev)
+        lr_lmd = lambda epoch: 0.995**epoch
+        self.le_scdlr = LambdaLR(self.optim, lr_lambda=lr_lmd)
+        self.le_scdlr.last_epoch = self.start_epoch-1
+
+    def load_ckpt(self, ckpt_pth):
+        if os.path.isfile(ckpt_pth):
+            print('Loading ' + ckpt_pth)
+            if self.cuda_dev:
+                self.model.module.load_state_dict(torch.load(ckpt_pth, map_location=self.cuda_dev))
+            else:
+                self.model.module.load_state_dict(torch.load(ckpt_pth, map_location='cpu'))
+            print('Finished Loading ckpt...')
+        else:
+            raise Exception(ckpt_pth + "\nckpt does not exist!")
 
     def warm_up(self):
         if not os.path.exists(self.ckpt_dir):
@@ -132,6 +143,7 @@ class Trainer(object):
         for step in range(WARM_UP):
             for x,s,l in self.dataloader:
                 l = l.unsqueeze(1).float().to(self.device).log()
+                l = (l - self.dataset.d_mean) / self.dataset.d_std
                 total_iter += 1
                 x = x.float().to(self.device)
                 if self.model_type == 'adv':
@@ -151,8 +163,8 @@ class Trainer(object):
                 self.optim.zero_grad()
                 rec_loss.backward()
                 self.optim.step()
-                if total_iter%50 == 0:
-                    self.pbar.write(f'[{total_iter}] vae_recon_loss:{rec_loss.item()}')
+                # if total_iter%50 == 0:
+                #     self.pbar.write(f'[{total_iter}] vae_recon_loss:{rec_loss.item()}')
             self.pbar.update(1)
         torch.save(self.model.module.state_dict(), os.path.join(self.ckpt_dir, 'warmup.pt'))
         self.pbar.write("[Warmup Finished]")
@@ -223,19 +235,23 @@ class Trainer(object):
             print(f'Making dir {self.ckpt_dir}')
             os.makedirs(self.ckpt_dir)
         self.model.train()
-        kl_list, rec_list, dice_list, mkl_list = [], [], [], []
+        kl_list, rec_list = [], []
         print('Inv Training started')
         self.pbar = tqdm(total=self.max_epoch - self.start_epoch)
         total_iter = (self.start_epoch-1) * self.dataset.__len__() // self.batch_size + 1
         for epoch in range(self.start_epoch, self.start_epoch + self.max_epoch):
-            epoch_kl, epoch_rec, epoch_dice, epoch_mkl = [], [], [], []
+            epoch_kl, epoch_rec = [], []
             kl_w = np.min([2 * (total_iter -(total_iter//self.cycle) * self.cycle) / self.cycle, 1])
             for x1, s1, l1 in self.dataloader:
                 x1 = x1.float().to(self.device)
                 l1 = l1.log()
                 l1 = (l1 - self.dataset.d_mean) / self.dataset.d_std
                 l1 = l1.unsqueeze(1).float().to(self.device)
-                z_mean, z_log_var, _, rec = self.model(x1, l1)
+                if self.de_batch:
+                    s1 = s1.unsqueeze(1).float().to(self.device)
+                    z_mean, z_log_var, _, rec = self.model(x1, l1, b=s1)
+                else:
+                    z_mean, z_log_var, _, rec = self.model(x1, l1)
                 mean = torch.zeros_like(z_mean)
                 var = torch.ones_like(z_log_var)
                 kld_z = kl(Normal(z_mean, torch.exp(z_log_var).sqrt()), Normal(mean, var)).sum()
@@ -247,12 +263,24 @@ class Trainer(object):
                 self.optim.zero_grad()
                 loss.backward()
                 self.optim.step()
+                epoch_kl.append(kld_z.item())
+                epoch_rec.append(bce.item())
                 total_iter += 1
+            kl_list.append(np.mean(epoch_kl))
+            rec_list.append(np.mean(epoch_rec))
             self.pbar.update(1)
-            self.pbar.write(f'[{epoch}], iter {total_iter}')
+            self.le_scdlr.step()
+            # self.pbar.write(f'[{epoch}], iter {total_iter}')
             if epoch % self.out_every == 0:
                 if epoch > self.start_save:
                     torch.save(self.model.module.state_dict(), os.path.join(self.ckpt_dir, f'{epoch}.pt'))
+                logdata = {
+                    'iter': list(range(self.start_epoch, epoch+1)),
+                    'kl': kl_list,
+                    'bce': rec_list
+                }
+                df = pd.DataFrame(logdata)
+                df.to_csv(os.path.join(self.ckpt_dir, 'inv' + self.log), index=False)
         self.pbar.write("[Inv Training Finished]")
         self.pbar.close()
 
@@ -270,7 +298,10 @@ class Trainer(object):
         for i, dp in tqdm(enumerate(dataloader)):
             x, l, d = dp
             x = x.float().to(self.device)
-            labels = labels + l
+            if self.de_batch:
+                labels = labels + list(l)
+            else:
+                labels = labels + l
             depth[i*batch_size: (i+1)*batch_size] = d
             d = d.log()
             d = (d - self.dataset.d_mean) / self.dataset.d_std
@@ -280,3 +311,4 @@ class Trainer(object):
                 # z_mean, _, _, _ = self.model(x)
                 latent[i*batch_size: (i+1)*batch_size] = z_mean.cpu()
         return latent, labels, depth
+

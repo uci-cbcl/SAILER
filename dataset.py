@@ -112,7 +112,7 @@ class MergeSim(Dataset):
         type_name = f'merge_sim_labels{num}.csv'
         tic = time.time()
         self.data = load_npz(os.path.join(data_pth, file_name))
-        self.cell_label = list(pd.read_csv(os.path.join(data_pth, type_name), header=None)[1].values.flatten())
+        self.cell_label = list(pd.read_csv(os.path.join(data_pth, type_name), header=None)[2].values.flatten())
         self.size = self.data.shape[-1]
         tok = time.time()
         print(f"Finish loading in {tok-tic}, data size {self.data.shape}")
